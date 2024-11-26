@@ -1,0 +1,28 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: redis-rules
+  namespace: default
+  labels:
+    app: kube-prometheus-stack
+    release: monitoring
+spec:
+  groups:
+  - name: main.rules
+    rules:
+    - alert: RedisMissingMaster
+      expr: (count(redis_instance_info{role="master"}) or vector(0)) < 1
+      for: 0m
+      labels:
+        severity: critical
+      annotations:
+        summary: Redis missing master (instance {{ $labels.instance }})
+        description: "Redis cluster has no node marked as master.\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+    - alert: RedisTooManyConnections
+      expr: redis_connected_clients / redis_config_maxclients * 100 > 90
+      for: 2m
+      labels:
+        severity: warning
+      annotations:
+        summary: Redis too many connections (instance {{ $labels.instance }})
+        description: "Redis is running out of connections (> 90% used)\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
